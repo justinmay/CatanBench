@@ -1,0 +1,2 @@
+# CatanBench
+Agents playing Catan
