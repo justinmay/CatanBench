@@ -3,6 +3,8 @@ import {
   applyPlayerTrade,
   chooseFallbackAction,
   createGame,
+  hasResources,
+  sumResources,
   type EngineEvent,
   type EngineResult,
   type EngineState,
@@ -10,6 +12,8 @@ import {
 } from "@catanbench/engine";
 
 import type {
+  CreatePlayerTradeProposalInput,
+  CreatePlayerTradeProposalResult,
   DeadlineBatchInput,
   DeadlineBatchResult,
   ExecutePlayerTradeInput,
@@ -19,6 +23,8 @@ import type {
   SubmitActionInput,
 } from "./types";
 import { OrchestrationError, StoredGameNotFoundError } from "./types";
+
+const RESOURCE_KEYS = ["brick", "lumber", "ore", "grain", "wool"] as const;
 
 const DEFAULT_BATCH_SIZE = 10;
 const DEFAULT_LEASE_DURATION_MS = 10_000;
@@ -349,6 +355,134 @@ export class GameOrchestrator {
       );
     }
     return outcome.result;
+  }
+
+  async createPlayerTradeProposal(
+    input: CreatePlayerTradeProposalInput,
+  ): Promise<CreatePlayerTradeProposalResult> {
+    const now = input.now ?? this.#now();
+    const outcome = await this.#withGame(input.gameId, async (session) => {
+      if (isDeadlineDue(session, now)) {
+        await this.#advanceExpiredWithinSession(session, now);
+        return {
+          kind: "deadline_advanced" as const,
+          currentVersion: session.game.stateVersion,
+        };
+      }
+
+      assertExpectedVersion(session, input.expectedVersion);
+      const state = requireState(session);
+      if (
+        state.status !== "active" ||
+        state.turn.phase !== "main" ||
+        state.turn.activePlayerId !== input.fromPlayerId
+      ) {
+        throw new OrchestrationError(
+          "illegal_action",
+          "Only the active player may propose a trade during the main phase",
+        );
+      }
+
+      const fromPlayer = state.players.find(
+        (player) => player.id === input.fromPlayerId,
+      );
+      const toPlayer = input.toPlayerId
+        ? state.players.find((player) => player.id === input.toPlayerId)
+        : null;
+      if (!fromPlayer) {
+        throw new OrchestrationError(
+          "illegal_action",
+          "The proposing player is not part of this game",
+        );
+      }
+      if (
+        input.toPlayerId === input.fromPlayerId ||
+        (input.toPlayerId !== null && !toPlayer)
+      ) {
+        throw new OrchestrationError(
+          "illegal_action",
+          "The trade proposal target is invalid",
+        );
+      }
+      if (
+        sumResources(input.offering) === 0 ||
+        sumResources(input.requesting) === 0 ||
+        RESOURCE_KEYS.some(
+          (resource) =>
+            input.offering[resource] > 0 && input.requesting[resource] > 0,
+        )
+      ) {
+        throw new OrchestrationError(
+          "illegal_action",
+          "A trade must offer and request different non-empty resources",
+        );
+      }
+      if (!hasResources(fromPlayer.resources, input.offering)) {
+        throw new OrchestrationError(
+          "illegal_action",
+          "The proposing player does not own the offered resources",
+        );
+      }
+      if (toPlayer && !hasResources(toPlayer.resources, input.requesting)) {
+        throw new OrchestrationError(
+          "illegal_action",
+          "The targeted player does not own the requested resources",
+        );
+      }
+      if (!session.game.turnDeadlineAt) {
+        throw new OrchestrationError(
+          "invalid_snapshot",
+          "An active trade proposal requires a turn deadline",
+        );
+      }
+
+      const nextState = structuredClone(state);
+      nextState.version += 1;
+      const proposal = {
+        id: input.proposalId,
+        gameId: input.gameId,
+        createdAtVersion: nextState.version,
+        fromPlayerId: input.fromPlayerId,
+        toPlayerId: input.toPlayerId,
+        offering: structuredClone(input.offering),
+        requesting: structuredClone(input.requesting),
+        expiresAt: session.game.turnDeadlineAt,
+        createdAt: now,
+      };
+      const result = {
+        state: nextState,
+        events: [
+          {
+            type: "tradeProposed",
+            actorPlayerId: input.fromPlayerId,
+            visibility: "public" as const,
+            data: {
+              proposalId: input.proposalId,
+              fromPlayerId: input.fromPlayerId,
+              toPlayerId: input.toPlayerId,
+              offering: input.offering,
+              requesting: input.requesting,
+            },
+          },
+        ],
+      };
+      await this.#saveResult(session, state, result, now);
+      await session.saveTradeProposal(proposal);
+      return { kind: "created" as const, result, proposal };
+    });
+
+    if (outcome.kind === "deadline_advanced") {
+      throw new OrchestrationError(
+        "stale_state",
+        "The turn deadline elapsed before the trade was proposed",
+        {
+          expectedVersion: input.expectedVersion,
+          currentVersion: outcome.currentVersion,
+          deadlineAdvanced: true,
+        },
+      );
+    }
+    return { ...outcome.result, proposal: outcome.proposal };
   }
 
   async pauseGame(input: LifecycleCommandInput): Promise<EngineState> {

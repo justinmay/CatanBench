@@ -14,6 +14,7 @@ import type {
   PersistedGameStatus,
   SaveStateInput,
   StoredGame,
+  StoredTradeProposal,
 } from "./types";
 import { StoredGameNotFoundError } from "./types";
 
@@ -27,6 +28,7 @@ const START = new Date("2026-08-04T12:00:00.000Z");
 interface History {
   snapshots: EngineState[];
   events: Array<{ version: number; event: EngineEvent }>;
+  tradeProposals: StoredTradeProposal[];
 }
 
 class MemorySession implements GameSession {
@@ -79,6 +81,10 @@ class MemorySession implements GameSession {
     };
   }
 
+  async saveTradeProposal(proposal: StoredTradeProposal): Promise<void> {
+    this.history.tradeProposals.push(structuredClone(proposal));
+  }
+
   async releaseDeadlineClaim(workerId: string): Promise<boolean> {
     if (this.game.deadlineClaimedBy !== workerId) {
       return false;
@@ -113,7 +119,7 @@ class MemoryStore implements OrchestrationStore {
       players: structuredClone(PLAYERS),
       state: null,
     });
-    this.#histories.set(id, { snapshots: [], events: [] });
+    this.#histories.set(id, { snapshots: [], events: [], tradeProposals: [] });
   }
 
   get(id: string): StoredGame {
@@ -126,6 +132,16 @@ class MemoryStore implements OrchestrationStore {
 
   history(id: string): History {
     return structuredClone(this.#histories.get(id)!);
+  }
+
+  mutateState(id: string, mutate: (state: EngineState) => void): void {
+    const game = this.#games.get(id);
+    if (!game?.state) {
+      throw new Error(`Missing test state: ${id}`);
+    }
+    mutate(game.state);
+    game.status = game.state.status;
+    game.stateVersion = game.state.version;
   }
 
   async withGameLock<T>(
@@ -151,12 +167,14 @@ class MemoryStore implements OrchestrationStore {
       const session = new MemorySession(structuredClone(stored), {
         snapshots: [],
         events: [],
+        tradeProposals: [],
       });
       const result = await operation(session);
       this.#games.set(gameId, structuredClone(session.game));
       const history = this.#histories.get(gameId)!;
       history.snapshots.push(...session.history.snapshots);
       history.events.push(...session.history.events);
+      history.tradeProposals.push(...session.history.tradeProposals);
       return result;
     } finally {
       release();
@@ -306,6 +324,44 @@ describe("game orchestration", () => {
         .history("game_late")
         .events.filter((item) => item.event.type === "deadlineActionApplied"),
     ).toHaveLength(2);
+  });
+
+  it("creates a durable player trade proposal and increments the version", async () => {
+    const store = new MemoryStore();
+    store.addLobby("game_trade");
+    const orchestrator = new GameOrchestrator(store, () => START);
+    await orchestrator.startGame("game_trade");
+    store.mutateState("game_trade", (state) => {
+      state.status = "active";
+      state.turnNumber = 1;
+      state.turn.phase = "main";
+      state.turn.activePlayerId = "player_a";
+      state.turn.requiredActorPlayerIds = ["player_a"];
+      state.players[0]!.resources.brick = 1;
+      state.players[1]!.resources.ore = 1;
+    });
+
+    const result = await orchestrator.createPlayerTradeProposal({
+      gameId: "game_trade",
+      proposalId: "trade_1",
+      fromPlayerId: "player_a",
+      toPlayerId: "player_b",
+      expectedVersion: 0,
+      offering: { brick: 1, lumber: 0, ore: 0, grain: 0, wool: 0 },
+      requesting: { brick: 0, lumber: 0, ore: 1, grain: 0, wool: 0 },
+      now: new Date(START.getTime() + 1_000),
+    });
+
+    expect(result.state.version).toBe(1);
+    expect(result.events[0]?.type).toBe("tradeProposed");
+    expect(store.history("game_trade").tradeProposals).toMatchObject([
+      {
+        id: "trade_1",
+        createdAtVersion: 1,
+        fromPlayerId: "player_a",
+        toPlayerId: "player_b",
+      },
+    ]);
   });
 
   it("leases each expired game to only one competing worker", async () => {

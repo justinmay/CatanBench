@@ -1,6 +1,7 @@
 import type {
   EngineEvent,
   EnginePlayerInput,
+  EngineResult,
   EngineState,
   GameAction,
 } from "@catanbench/engine";
@@ -34,10 +35,23 @@ export interface SaveStateInput {
   now: Date;
 }
 
+export interface StoredTradeProposal {
+  id: string;
+  gameId: string;
+  createdAtVersion: number;
+  fromPlayerId: string;
+  toPlayerId: string | null;
+  offering: ResourceMap;
+  requesting: ResourceMap;
+  expiresAt: Date;
+  createdAt: Date;
+}
+
 export interface GameSession {
   game: StoredGame;
   saveState(input: SaveStateInput): Promise<void>;
   saveStatus(status: PersistedGameStatus, now: Date): Promise<void>;
+  saveTradeProposal(proposal: StoredTradeProposal): Promise<void>;
   releaseDeadlineClaim(workerId: string): Promise<boolean>;
 }
 
@@ -72,6 +86,21 @@ export interface ExecutePlayerTradeInput {
   offering: ResourceMap;
   requesting: ResourceMap;
   now?: Date;
+}
+
+export interface CreatePlayerTradeProposalInput {
+  gameId: string;
+  proposalId: string;
+  fromPlayerId: string;
+  toPlayerId: string | null;
+  expectedVersion: number;
+  offering: ResourceMap;
+  requesting: ResourceMap;
+  now?: Date;
+}
+
+export interface CreatePlayerTradeProposalResult extends EngineResult {
+  proposal: StoredTradeProposal;
 }
 
 export interface DeadlineBatchInput {

@@ -292,8 +292,37 @@ export const GameStateSchema = z.object({
   recentEvents: z.array(VisibleEventSchema),
 });
 
+export const LegalActionsResponseSchema = z.object({
+  gameId: idSchema,
+  version: z.number().int().nonnegative(),
+  phase: TurnPhaseSchema.nullable(),
+  deadlineAt: timestampSchema.nullable(),
+  legalActions: z.array(LegalActionSchema),
+});
+
+export const GameCommandResponseSchema = z.object({
+  gameId: idSchema,
+  version: z.number().int().nonnegative(),
+  event: VisibleEventSchema,
+});
+
 export const PostChatMessageRequestSchema = z.object({
   message: z.string().trim().min(1).max(2_000),
+});
+
+export const ChatMessageSchema = z.object({
+  id: idSchema,
+  playerId: idSchema,
+  message: z.string(),
+  createdAt: timestampSchema,
+});
+
+export const ChatMessagesResponseSchema = z.object({
+  messages: z.array(ChatMessageSchema),
+});
+
+export const PostChatMessageResponseSchema = z.object({
+  message: ChatMessageSchema,
 });
 
 export const TradeProposalSchema = z.object({
@@ -319,12 +348,25 @@ export const ExecuteTradeRequestSchema = z.object({
   proposalId: idSchema,
 });
 
+export const CreateTradeProposalResponseSchema = z.object({
+  proposal: TradeProposalSchema,
+  version: z.number().int().nonnegative(),
+});
+
+export const TradeProposalsResponseSchema = z.object({
+  proposals: z.array(TradeProposalSchema),
+});
+
 export const ApiErrorCodeSchema = z.enum([
   "invalid_request",
+  "idempotency_conflict",
   "missing_token",
   "invalid_token",
   "not_a_participant",
   "game_not_found",
+  "registration_closed",
+  "game_full",
+  "agent_name_taken",
   "proposal_not_found",
   "stale_state",
   "not_your_turn",
@@ -345,17 +387,27 @@ export const ApiErrorResponseSchema = z.object({
 
 export type ApiErrorResponse = z.infer<typeof ApiErrorResponseSchema>;
 export type Board = z.infer<typeof BoardSchema>;
+export type ChatMessage = z.infer<typeof ChatMessageSchema>;
+export type ChatMessagesResponse = z.infer<typeof ChatMessagesResponseSchema>;
 export type CreateTradeProposalRequest = z.infer<
   typeof CreateTradeProposalRequestSchema
+>;
+export type CreateTradeProposalResponse = z.infer<
+  typeof CreateTradeProposalResponseSchema
 >;
 export type ExecuteTradeRequest = z.infer<typeof ExecuteTradeRequestSchema>;
 export type DevelopmentCardType = z.infer<typeof DevelopmentCardTypeSchema>;
 export type GameAction = z.infer<typeof GameActionSchema>;
+export type GameCommandResponse = z.infer<typeof GameCommandResponseSchema>;
 export type GameState = z.infer<typeof GameStateSchema>;
 export type LegalAction = z.infer<typeof LegalActionSchema>;
+export type LegalActionsResponse = z.infer<typeof LegalActionsResponseSchema>;
 export type PlayerColor = z.infer<typeof PlayerColorSchema>;
 export type PostChatMessageRequest = z.infer<
   typeof PostChatMessageRequestSchema
+>;
+export type PostChatMessageResponse = z.infer<
+  typeof PostChatMessageResponseSchema
 >;
 export type RegisterAgentRequest = z.infer<typeof RegisterAgentRequestSchema>;
 export type RegisterAgentResponse = z.infer<typeof RegisterAgentResponseSchema>;
@@ -364,4 +416,7 @@ export type ResourceMap = z.infer<typeof ResourceMapSchema>;
 export type Terrain = z.infer<typeof TerrainSchema>;
 export type SubmitActionRequest = z.infer<typeof SubmitActionRequestSchema>;
 export type TradeProposal = z.infer<typeof TradeProposalSchema>;
+export type TradeProposalsResponse = z.infer<
+  typeof TradeProposalsResponseSchema
+>;
 export type TurnPhase = z.infer<typeof TurnPhaseSchema>;

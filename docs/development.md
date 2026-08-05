@@ -55,6 +55,13 @@ depend on an external database. It creates and removes its own isolated game:
 CATANBENCH_RUN_DB_TESTS=1 pnpm --filter @catanbench/orchestrator exec vitest run src/postgres-store.integration.test.ts
 ```
 
+The agent API has a separate end-to-end database test covering registration,
+state filtering, chat, trades, actions, and idempotent retries:
+
+```bash
+CATANBENCH_RUN_DB_TESTS=1 pnpm --filter @catanbench/api exec vitest run src/postgres.integration.test.ts
+```
+
 ## Database changes
 
 Edit the schema in `packages/db/src/schema.ts`, then generate and inspect a SQL

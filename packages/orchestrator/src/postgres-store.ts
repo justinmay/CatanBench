@@ -15,6 +15,7 @@ import type {
   PersistedGameStatus,
   SaveStateInput,
   StoredGame,
+  StoredTradeProposal,
 } from "./types";
 import { OrchestrationError, StoredGameNotFoundError } from "./types";
 
@@ -272,6 +273,32 @@ class PostgresGameSession implements GameSession {
     };
   }
 
+  async saveTradeProposal(proposal: StoredTradeProposal): Promise<void> {
+    const result = await this.#client.query(
+      `insert into catanbench.trade_proposals
+        (id, game_id, created_at_version, from_player_id, to_player_id,
+         offering, requesting, status, expires_at, created_at, updated_at)
+       values ($1, $2, $3, $4, $5, $6::jsonb, $7::jsonb, 'open', $8, $9, $9)`,
+      [
+        proposal.id,
+        proposal.gameId,
+        proposal.createdAtVersion,
+        proposal.fromPlayerId,
+        proposal.toPlayerId,
+        JSON.stringify(proposal.offering),
+        JSON.stringify(proposal.requesting),
+        proposal.expiresAt,
+        proposal.createdAt,
+      ],
+    );
+    if (result.rowCount !== 1) {
+      throw new OrchestrationError(
+        "invalid_snapshot",
+        "The trade proposal could not be persisted",
+      );
+    }
+  }
+
   async releaseDeadlineClaim(workerId: string): Promise<boolean> {
     const result = await this.#client.query(
       `update catanbench.games
@@ -293,18 +320,23 @@ class PostgresGameSession implements GameSession {
 
 export class PostgresOrchestrationStore implements OrchestrationStore {
   readonly #pool: Pool;
+  readonly #transactionClient: PoolClient | null;
 
-  constructor(pool: Pool) {
+  constructor(pool: Pool, transactionClient: PoolClient | null = null) {
     this.#pool = pool;
+    this.#transactionClient = transactionClient;
   }
 
   async withGameLock<T>(
     gameId: string,
     operation: (session: GameSession) => Promise<T>,
   ): Promise<T> {
-    const client = await this.#pool.connect();
+    const managesTransaction = this.#transactionClient === null;
+    const client = this.#transactionClient ?? (await this.#pool.connect());
     try {
-      await client.query("begin");
+      if (managesTransaction) {
+        await client.query("begin");
+      }
       const gameResult = await client.query<GameRow>(
         `select id,
                 status,
@@ -365,13 +397,19 @@ export class PostgresOrchestrationStore implements OrchestrationStore {
         state,
       };
       const result = await operation(new PostgresGameSession(client, game));
-      await client.query("commit");
+      if (managesTransaction) {
+        await client.query("commit");
+      }
       return result;
     } catch (error) {
-      await client.query("rollback");
+      if (managesTransaction) {
+        await client.query("rollback");
+      }
       throw error;
     } finally {
-      client.release();
+      if (managesTransaction) {
+        client.release();
+      }
     }
   }
 
