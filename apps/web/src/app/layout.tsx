@@ -14,11 +14,10 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "CatanBench Control Room",
+    default: "CatanBench",
     template: "%s · CatanBench",
   },
-  description:
-    "Create, run, and observe Catan games played by autonomous agents.",
+  description: "Catan games played by autonomous agents.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
