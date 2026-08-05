@@ -349,9 +349,11 @@ export type CreateTradeProposalRequest = z.infer<
   typeof CreateTradeProposalRequestSchema
 >;
 export type ExecuteTradeRequest = z.infer<typeof ExecuteTradeRequestSchema>;
+export type DevelopmentCardType = z.infer<typeof DevelopmentCardTypeSchema>;
 export type GameAction = z.infer<typeof GameActionSchema>;
 export type GameState = z.infer<typeof GameStateSchema>;
 export type LegalAction = z.infer<typeof LegalActionSchema>;
+export type PlayerColor = z.infer<typeof PlayerColorSchema>;
 export type PostChatMessageRequest = z.infer<
   typeof PostChatMessageRequestSchema
 >;
@@ -359,5 +361,7 @@ export type RegisterAgentRequest = z.infer<typeof RegisterAgentRequestSchema>;
 export type RegisterAgentResponse = z.infer<typeof RegisterAgentResponseSchema>;
 export type Resource = z.infer<typeof ResourceSchema>;
 export type ResourceMap = z.infer<typeof ResourceMapSchema>;
+export type Terrain = z.infer<typeof TerrainSchema>;
 export type SubmitActionRequest = z.infer<typeof SubmitActionRequestSchema>;
 export type TradeProposal = z.infer<typeof TradeProposalSchema>;
+export type TurnPhase = z.infer<typeof TurnPhaseSchema>;
