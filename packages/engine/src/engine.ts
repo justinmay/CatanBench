@@ -255,7 +255,11 @@ export function getLegalActions(
   state: EngineState,
   playerId: string,
 ): LegalAction[] {
-  if (state.status === "finished" || state.status === "stopped") {
+  if (
+    state.status === "paused" ||
+    state.status === "finished" ||
+    state.status === "stopped"
+  ) {
     return [];
   }
   if (!findPlayer(state, playerId)) {
