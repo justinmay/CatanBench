@@ -19,6 +19,12 @@ importers:
       "@base-ui/react":
         specifier: ^1.6.0
         version: 1.6.0(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      "@catanbench/api":
+        specifier: workspace:*
+        version: link:../../packages/api
+      "@catanbench/db":
+        specifier: workspace:*
+        version: link:../../packages/db
       "@catanbench/protocol":
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -93,6 +99,37 @@ importers:
       tsx:
         specifier: ^4.23.5
         version: 4.23.5
+
+  packages/api:
+    dependencies:
+      "@catanbench/engine":
+        specifier: workspace:*
+        version: link:../engine
+      "@catanbench/orchestrator":
+        specifier: workspace:*
+        version: link:../orchestrator
+      "@catanbench/protocol":
+        specifier: workspace:*
+        version: link:../protocol
+      pg:
+        specifier: ^8.22.0
+        version: 8.22.0
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      "@types/node":
+        specifier: ^26.1.2
+        version: 26.1.2
+      "@types/pg":
+        specifier: ^8.20.3
+        version: 8.20.3
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@26.1.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.5)
 
   packages/db:
     dependencies:

@@ -1,0 +1,27 @@
+{
+  "name": "@catanbench/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./http": "./src/http.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@catanbench/engine": "workspace:*",
+    "@catanbench/orchestrator": "workspace:*",
+    "@catanbench/protocol": "workspace:*",
+    "pg": "^8.22.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "@types/pg": "^8.20.3",
+    "dotenv": "^17.4.2",
+    "vitest": "^3.2.4"
+  }
+}
