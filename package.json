@@ -1,0 +1,28 @@
+{
+  "name": "catanbench",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.0.9",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "pnpm --recursive --if-present build",
+    "db:check": "pnpm --filter @catanbench/db db:check",
+    "db:generate": "pnpm --filter @catanbench/db db:generate",
+    "db:migrate": "pnpm --filter @catanbench/db db:migrate",
+    "db:ping": "pnpm --filter @catanbench/db db:ping",
+    "db:studio": "pnpm --filter @catanbench/db db:studio",
+    "dev": "pnpm --filter @catanbench/web dev",
+    "dev:web": "pnpm --filter @catanbench/web dev",
+    "dev:worker": "pnpm --filter @catanbench/worker dev",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write .",
+    "lint": "pnpm --recursive --if-present lint",
+    "typecheck": "pnpm --recursive --if-present typecheck"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3"
+  }
+}
