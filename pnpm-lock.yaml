@@ -80,6 +80,9 @@ importers:
       "@catanbench/db":
         specifier: workspace:*
         version: link:../../packages/db
+      "@catanbench/orchestrator":
+        specifier: workspace:*
+        version: link:../../packages/orchestrator
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
@@ -125,6 +128,31 @@ importers:
         specifier: workspace:*
         version: link:../protocol
     devDependencies:
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@26.1.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.5)
+
+  packages/orchestrator:
+    dependencies:
+      "@catanbench/engine":
+        specifier: workspace:*
+        version: link:../engine
+      "@catanbench/protocol":
+        specifier: workspace:*
+        version: link:../protocol
+      pg:
+        specifier: ^8.22.0
+        version: 8.22.0
+    devDependencies:
+      "@types/node":
+        specifier: ^26.1.2
+        version: 26.1.2
+      "@types/pg":
+        specifier: ^8.20.3
+        version: 8.20.3
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       vitest:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@26.1.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.5)

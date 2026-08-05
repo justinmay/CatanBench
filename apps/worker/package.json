@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@catanbench/db": "workspace:*",
+    "@catanbench/orchestrator": "workspace:*",
     "dotenv": "^17.4.2"
   },
   "devDependencies": {

@@ -58,7 +58,7 @@ export interface EngineDice {
 }
 
 export type EngineGameStatus =
-  "initial_placement" | "active" | "finished" | "stopped";
+  "initial_placement" | "active" | "paused" | "finished" | "stopped";
 
 export interface EngineState {
   gameId: string;
